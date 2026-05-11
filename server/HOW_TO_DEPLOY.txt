@@ -1,0 +1,31 @@
+HOW TO DEPLOY THE RELAY SERVER (FREE) - Render.com
+===================================================
+
+1. Go to https://render.com and create a free account
+
+2. Click "New +" → "Web Service"
+
+3. Connect your GitHub account and push the /server folder
+   (or just upload the two files: server.js and package.json)
+
+4. Configure the service:
+   - Name:        connectchat-relay
+   - Environment: Node
+   - Build Command:  npm install
+   - Start Command:  node server.js
+   - Plan:        FREE
+
+5. Click "Deploy". Render will give you a URL like:
+   https://connectchat-relay.onrender.com
+
+6. UPDATE the URL in the Android app:
+   File: app/src/main/java/com/example/connectchat/model/network/WebSocketManager.java
+   Line: public static final String SERVER_URL = "wss://YOUR-APP-NAME.onrender.com";
+
+   Change "wss://connectchat-relay.onrender.com" to your actual URL.
+   Note: use "wss://" (secure WebSocket), NOT "https://"
+
+7. Rebuild the app and you're done!
+
+NOTE: On Render free tier, the server "sleeps" after 15 minutes of inactivity.
+The first connection may take ~30 seconds to wake up. This is fine for a demo.

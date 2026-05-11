@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">ConnectChat</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="dont_have_account">Don\'t have an account? Register</string>
+    <string name="already_have_account">Already have an account? Login</string>
+    <string name="new_chat">New Chat</string>
+    <string name="enter_username">Enter username to chat with</string>
+    <string name="type_message">Type a message…</string>
+    <string name="send">Send</string>
+    <string name="clear_history">Clear Chat History</string>
+    <string name="logout">Logout</string>
+    <string name="connecting">Connecting…</string>
+    <string name="online">Online</string>
+    <string name="offline">Offline</string>
+</resources>
