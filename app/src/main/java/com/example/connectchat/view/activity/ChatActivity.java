@@ -1,13 +1,13 @@
 package com.example.connectchat.view.activity;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.MenuItem;
 import android.view.View;
 
@@ -16,6 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.connectchat.databinding.ActivityChatBinding;
@@ -33,6 +35,8 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
 
     public static final String EXTRA_PEER_USERNAME = "peer_username";
 
+    public static volatile String activePeer = null;
+
     private ActivityChatBinding binding;
     private ChatPresenter presenter;
     private MessageAdapter adapter;
@@ -41,7 +45,9 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
     private String conversationId;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    // Image picker launcher
+    // Track latest received-message timestamp so we can send a read receipt
+    private long latestReceivedTimestamp = 0;
+
     private final ActivityResultLauncher<String> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 if (uri != null) {
@@ -50,7 +56,6 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
                 }
             });
 
-    // Permission launcher
     private final ActivityResultLauncher<String> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
                 if (granted) openImagePicker();
@@ -59,6 +64,12 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        WindowInsetsControllerCompat insetsController =
+                WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        insetsController.setAppearanceLightStatusBars(false);
+
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -74,16 +85,23 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
         binding.tvPeerName.setText(peerUsername);
         binding.toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Connection status
-        boolean connected = WebSocketManager.getInstance().isConnected();
-        showConnectionStatus(connected);
-
         // RecyclerView
         adapter = new MessageAdapter(currentUsername);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         binding.rvMessages.setLayoutManager(layoutManager);
         binding.rvMessages.setAdapter(adapter);
+
+        // Long-press on a sent message → offer delete
+        adapter.setOnMessageLongClickListener(message -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete message")
+                    .setMessage("Delete this message for everyone?")
+                    .setPositiveButton("Delete for everyone", (d, w) ->
+                            presenter.deleteMessage(message))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
 
         // Send button
         binding.btnSend.setOnClickListener(v -> {
@@ -95,43 +113,68 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
         // Image button
         binding.btnPickImage.setOnClickListener(v -> checkPermissionAndPickImage());
 
+        // Typing indicator — send event on each keystroke (debounced by server)
+        binding.etMessage.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void afterTextChanged(Editable s) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.length() > 0) presenter.sendTypingEvent();
+            }
+        });
+
         // Load history
         presenter.loadHistory(conversationId);
     }
 
-    private void checkPermissionAndPickImage() {
-        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                ? Manifest.permission.READ_MEDIA_IMAGES
-                : Manifest.permission.READ_EXTERNAL_STORAGE;
-
-        if (ContextCompat.checkSelfPermission(this, permission)
-                == PackageManager.PERMISSION_GRANTED) {
-            openImagePicker();
-        } else {
-            permissionLauncher.launch(permission);
-        }
-    }
-
-    private void openImagePicker() {
-        imagePickerLauncher.launch("image/*");
+    @Override
+    protected void onResume() {
+        super.onResume();
+        activePeer = peerUsername;
+        presenter.reattachListener();
+        showConnectionStatus(WebSocketManager.getInstance().isConnected());
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        activePeer = null;
+        // Send read receipt for everything we've seen
+        if (latestReceivedTimestamp > 0) {
+            presenter.sendReadReceipts(conversationId, peerUsername, latestReceivedTimestamp);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // ChatContract.View
+    // -----------------------------------------------------------------------
+
+    @Override
     public void showMessages(List<Message> messages) {
-        mainHandler.post(() -> {
-            adapter.setMessages(messages);
-            if (!messages.isEmpty()) {
-                binding.rvMessages.scrollToPosition(messages.size() - 1);
+        adapter.setMessages(messages);
+        if (!messages.isEmpty()) {
+            binding.rvMessages.scrollToPosition(messages.size() - 1);
+        }
+        // Find the latest timestamp among received messages to send a read receipt
+        for (Message m : messages) {
+            if (!m.senderId.equals(currentUsername) && m.timestamp > latestReceivedTimestamp) {
+                latestReceivedTimestamp = m.timestamp;
             }
-        });
+        }
+        if (latestReceivedTimestamp > 0) {
+            presenter.sendReadReceipts(conversationId, peerUsername, latestReceivedTimestamp);
+        }
     }
 
     @Override
     public void appendMessage(Message message) {
-        mainHandler.post(() -> {
-            adapter.addMessage(message);
-            binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
-        });
+        adapter.addMessage(message);
+        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
+        // Track latest received timestamp for auto read receipt
+        if (!message.senderId.equals(currentUsername) && message.timestamp > latestReceivedTimestamp) {
+            latestReceivedTimestamp = message.timestamp;
+            presenter.sendReadReceipts(conversationId, peerUsername, latestReceivedTimestamp);
+        }
     }
 
     @Override
@@ -146,11 +189,34 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
 
     @Override
     public void onImageSent(Message message) {
-        mainHandler.post(() -> {
-            adapter.addMessage(message);
-            binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
-        });
+        adapter.addMessage(message);
+        binding.rvMessages.scrollToPosition(adapter.getItemCount() - 1);
     }
+
+    @Override
+    public void showTypingIndicator(boolean visible) {
+        binding.tvTypingIndicator.setText(peerUsername + " is typing…");
+        binding.tvTypingIndicator.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
+    public void onRemoteMessageDeleted(String senderId, long timestamp) {
+        adapter.markDeleted(senderId, timestamp);
+    }
+
+    @Override
+    public void onReadReceiptUpdated(String conversationId, long upToTimestamp) {
+        adapter.markReadUpTo(currentUsername, upToTimestamp);
+    }
+
+    @Override
+    public void onConversationDeleted() {
+        finish();
+    }
+
+    // -----------------------------------------------------------------------
+    // Menu
+    // -----------------------------------------------------------------------
 
     @Override
     public boolean onCreateOptionsMenu(android.view.Menu menu) {
@@ -160,7 +226,8 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == com.example.connectchat.R.id.action_clear_history) {
+        int id = item.getItemId();
+        if (id == com.example.connectchat.R.id.action_clear_history) {
             new AlertDialog.Builder(this)
                     .setTitle("Clear History")
                     .setMessage("Delete all messages in this chat?")
@@ -169,8 +236,37 @@ public class ChatActivity extends AppCompatActivity implements ChatContract.View
                     .setNegativeButton("Cancel", null)
                     .show();
             return true;
+        } else if (id == com.example.connectchat.R.id.action_delete_conversation) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete Conversation")
+                    .setMessage("Remove this conversation and all messages?")
+                    .setPositiveButton("Delete", (d, w) ->
+                            presenter.deleteConversation(conversationId))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    private void checkPermissionAndPickImage() {
+        String permission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                ? Manifest.permission.READ_MEDIA_IMAGES
+                : Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, permission)
+                == PackageManager.PERMISSION_GRANTED) {
+            openImagePicker();
+        } else {
+            permissionLauncher.launch(permission);
+        }
+    }
+
+    private void openImagePicker() {
+        imagePickerLauncher.launch("image/*");
     }
 
     @Override

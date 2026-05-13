@@ -16,6 +16,17 @@
         android:orientation="vertical"
         android:padding="10dp">
 
+        <!-- Deleted message placeholder -->
+        <TextView
+            android:id="@+id/tvDeleted"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚫 This message was deleted"
+            android:textColor="@color/time_text"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/tvMessage"
             android:layout_width="wrap_content"

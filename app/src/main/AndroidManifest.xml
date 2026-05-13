@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -46,6 +47,16 @@
             android:name=".view.activity.ChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ConnectChat.NoActionBar" />
+
+        <activity
+            android:name=".view.activity.ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ConnectChat.NoActionBar" />
+
+        <activity
+            android:name=".view.activity.SearchActivity"
+            android:exported="false"
             android:theme="@style/Theme.ConnectChat.NoActionBar" />
 
     </application>

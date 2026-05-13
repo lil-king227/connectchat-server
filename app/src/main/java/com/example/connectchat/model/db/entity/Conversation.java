@@ -28,12 +28,14 @@ public class Conversation {
         this.unreadCount = unreadCount;
     }
 
-    // Helper: build a stable conversation ID from two usernames
+    // Helper: build a stable conversation ID from two usernames (case-insensitive)
     public static String buildId(String userA, String userB) {
-        if (userA.compareTo(userB) <= 0) {
-            return userA + "_" + userB;
+        String a = userA.toLowerCase();
+        String b = userB.toLowerCase();
+        if (a.compareTo(b) <= 0) {
+            return a + "_" + b;
         } else {
-            return userB + "_" + userA;
+            return b + "_" + a;
         }
     }
 }

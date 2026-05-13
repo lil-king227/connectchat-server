@@ -27,4 +27,7 @@ public interface ConversationDao {
 
     @Query("UPDATE conversations SET unreadCount = 0 WHERE conversationId = :id")
     void markAsRead(String id);
+
+    @Query("DELETE FROM conversations WHERE conversationId = :id")
+    void deleteById(String id);
 }

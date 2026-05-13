@@ -23,6 +23,9 @@ public class ChatPresenter implements ChatContract.Presenter, WebSocketManager.M
     private final String currentUser;
     private final String peerUser;
 
+    // Typing indicator: auto-hide after 3 s of silence
+    private Runnable hideTypingRunnable;
+
     public ChatPresenter(ChatContract.View view, Context context,
                          String currentUser, String peerUser) {
         this.view = view;
@@ -30,19 +33,21 @@ public class ChatPresenter implements ChatContract.Presenter, WebSocketManager.M
         this.currentUser = currentUser;
         this.peerUser = peerUser;
 
-        // Hook into the already-connected WebSocket
         WebSocketManager.getInstance().setListener(this);
     }
+
+    // -----------------------------------------------------------------------
+    // History & messages
+    // -----------------------------------------------------------------------
 
     @Override
     public void loadHistory(String conversationId) {
         executor.execute(() -> {
             List<Message> messages = db.messageDao().getMessagesForConversation(conversationId);
-            // Mark as read
             db.conversationDao().markAsRead(conversationId);
-            if (view != null) {
-                view.showMessages(messages);
-            }
+            mainHandler.post(() -> {
+                if (view != null) view.showMessages(messages);
+            });
         });
     }
 
@@ -55,17 +60,14 @@ public class ChatPresenter implements ChatContract.Presenter, WebSocketManager.M
                 content.trim(), Message.TYPE_TEXT, Message.STATUS_SENT,
                 System.currentTimeMillis());
 
+        if (view != null) view.appendMessage(msg);
+
         executor.execute(() -> {
             db.messageDao().insert(msg);
             updateConversationLastMessage(conversationId, content.trim());
         });
 
-        // Send via WebSocket
         WebSocketManager.getInstance().sendText(receiverId, content.trim());
-
-        if (view != null) {
-            view.appendMessage(msg);
-        }
     }
 
     @Override
@@ -75,28 +77,162 @@ public class ChatPresenter implements ChatContract.Presenter, WebSocketManager.M
                 imagePath, Message.TYPE_IMAGE, Message.STATUS_SENT,
                 System.currentTimeMillis());
 
+        if (view != null) view.onImageSent(msg);
+
         executor.execute(() -> {
             db.messageDao().insert(msg);
             updateConversationLastMessage(conversationId, "[Image]");
         });
 
-        // Send via WebSocket
         WebSocketManager.getInstance().sendImage(receiverId, imagePath);
-
-        if (view != null) {
-            view.onImageSent(msg);
-        }
     }
 
     @Override
     public void clearHistory(String conversationId) {
         executor.execute(() -> {
             db.messageDao().deleteByConversation(conversationId);
-            if (view != null) {
-                view.showMessages(java.util.Collections.emptyList());
-            }
+            mainHandler.post(() -> {
+                if (view != null) view.showMessages(java.util.Collections.emptyList());
+            });
         });
     }
+
+    @Override
+    public void deleteConversation(String conversationId) {
+        executor.execute(() -> {
+            db.messageDao().deleteByConversation(conversationId);
+            db.conversationDao().deleteById(conversationId);
+            mainHandler.post(() -> {
+                if (view != null) view.onConversationDeleted();
+            });
+        });
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 1: typing
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void sendTypingEvent() {
+        WebSocketManager.getInstance().sendTyping(peerUser);
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 1: delete message
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void deleteMessage(Message message) {
+        String conversationId = message.conversationId;
+        long timestamp = message.timestamp;
+
+        // 1. Update local DB
+        executor.execute(() -> {
+            db.messageDao().markAsDeleted(currentUser, conversationId, timestamp);
+        });
+
+        // 2. Notify peer over WebSocket
+        WebSocketManager.getInstance().sendDeleteMessage(peerUser, conversationId, timestamp);
+
+        // 3. Update UI immediately
+        if (view != null) view.onRemoteMessageDeleted(currentUser, timestamp);
+    }
+
+    // -----------------------------------------------------------------------
+    // Phase 1: read receipts
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void sendReadReceipts(String conversationId, String peerUser, long latestTimestamp) {
+        if (latestTimestamp <= 0) return;
+        WebSocketManager.getInstance().sendReadReceipt(peerUser, conversationId, latestTimestamp);
+    }
+
+    // -----------------------------------------------------------------------
+    // WebSocketManager.MessageListener — all on MAIN thread
+    // -----------------------------------------------------------------------
+
+    @Override
+    public void onTextMessageReceived(String fromUser, String content, long timestamp) {
+        if (!fromUser.equalsIgnoreCase(peerUser)) return;
+
+        String conversationId = Conversation.buildId(currentUser, peerUser);
+        Message msg = new Message(conversationId, fromUser, currentUser,
+                content, Message.TYPE_TEXT, Message.STATUS_RECEIVED, timestamp);
+
+        if (view != null) view.appendMessage(msg);
+
+        executor.execute(() -> {
+            db.messageDao().insert(msg);
+            updateConversationLastMessage(conversationId, content);
+        });
+    }
+
+    @Override
+    public void onImageMessageReceived(String fromUser, String imagePath, long timestamp) {
+        if (!fromUser.equalsIgnoreCase(peerUser)) return;
+
+        String conversationId = Conversation.buildId(currentUser, peerUser);
+        Message msg = new Message(conversationId, fromUser, currentUser,
+                imagePath, Message.TYPE_IMAGE, Message.STATUS_RECEIVED, timestamp);
+
+        if (view != null) view.appendMessage(msg);
+
+        executor.execute(() -> {
+            db.messageDao().insert(msg);
+            updateConversationLastMessage(conversationId, "[Image]");
+        });
+    }
+
+    @Override
+    public void onTypingReceived(String fromUser) {
+        if (!fromUser.equalsIgnoreCase(peerUser)) return;
+
+        if (view != null) view.showTypingIndicator(true);
+
+        // Cancel previous hide runnable
+        if (hideTypingRunnable != null) mainHandler.removeCallbacks(hideTypingRunnable);
+        hideTypingRunnable = () -> {
+            if (view != null) view.showTypingIndicator(false);
+        };
+        mainHandler.postDelayed(hideTypingRunnable, 3000);
+    }
+
+    @Override
+    public void onReadReceiptReceived(String fromUser, String conversationId, long upToTimestamp) {
+        if (!fromUser.equalsIgnoreCase(peerUser)) return;
+
+        executor.execute(() -> {
+            db.messageDao().markMessagesRead(conversationId, currentUser, upToTimestamp);
+        });
+
+        if (view != null) view.onReadReceiptUpdated(conversationId, upToTimestamp);
+    }
+
+    @Override
+    public void onMessageDeleteReceived(String fromUser, String conversationId, long timestamp) {
+        if (!fromUser.equalsIgnoreCase(peerUser)) return;
+
+        executor.execute(() -> {
+            db.messageDao().markAsDeleted(fromUser, conversationId, timestamp);
+        });
+
+        if (view != null) view.onRemoteMessageDeleted(fromUser, timestamp);
+    }
+
+    @Override
+    public void onConnected() {
+        if (view != null) view.showConnectionStatus(true);
+    }
+
+    @Override
+    public void onDisconnected() {
+        if (view != null) view.showConnectionStatus(false);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
 
     private void updateConversationLastMessage(String conversationId, String lastMsg) {
         Conversation conv = db.conversationDao().findById(conversationId);
@@ -107,61 +243,14 @@ public class ChatPresenter implements ChatContract.Presenter, WebSocketManager.M
         }
     }
 
-    // --- WebSocketManager.MessageListener ---
-
-    @Override
-    public void onTextMessageReceived(String fromUser, String content, long timestamp) {
-        if (!fromUser.equals(peerUser)) return; // message is not from our peer
-        String conversationId = Conversation.buildId(currentUser, peerUser);
-        Message msg = new Message(conversationId, fromUser, currentUser,
-                content, Message.TYPE_TEXT, Message.STATUS_RECEIVED, timestamp);
-
-        executor.execute(() -> {
-            db.messageDao().insert(msg);
-            updateConversationLastMessage(conversationId, content);
-        });
-
-        mainHandler.post(() -> {
-            if (view != null) view.appendMessage(msg);
-        });
-    }
-
-    @Override
-    public void onImageMessageReceived(String fromUser, String imagePath, long timestamp) {
-        if (!fromUser.equals(peerUser)) return;
-        String conversationId = Conversation.buildId(currentUser, peerUser);
-        Message msg = new Message(conversationId, fromUser, currentUser,
-                imagePath, Message.TYPE_IMAGE, Message.STATUS_RECEIVED, timestamp);
-
-        executor.execute(() -> {
-            db.messageDao().insert(msg);
-            updateConversationLastMessage(conversationId, "[Image]");
-        });
-
-        mainHandler.post(() -> {
-            if (view != null) view.appendMessage(msg);
-        });
-    }
-
-    @Override
-    public void onConnected() {
-        mainHandler.post(() -> {
-            if (view != null) view.showConnectionStatus(true);
-        });
-    }
-
-    @Override
-    public void onDisconnected() {
-        mainHandler.post(() -> {
-            if (view != null) view.showConnectionStatus(false);
-        });
+    public void reattachListener() {
+        WebSocketManager.getInstance().setListener(this);
     }
 
     @Override
     public void destroy() {
+        if (hideTypingRunnable != null) mainHandler.removeCallbacks(hideTypingRunnable);
         view = null;
         executor.shutdown();
-        // Restore a no-op listener so home screen still gets messages
-        WebSocketManager.getInstance().setListener(null);
     }
 }

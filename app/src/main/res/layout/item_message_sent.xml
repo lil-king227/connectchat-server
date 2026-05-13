@@ -16,6 +16,17 @@
         android:orientation="vertical"
         android:padding="10dp">
 
+        <!-- Deleted message placeholder -->
+        <TextView
+            android:id="@+id/tvDeleted"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚫 This message was deleted"
+            android:textColor="@color/time_text"
+            android:textSize="13sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/tvMessage"
             android:layout_width="wrap_content"
@@ -30,13 +41,32 @@
             android:scaleType="centerCrop"
             android:visibility="gone" />
 
-        <TextView
-            android:id="@+id/tvTime"
+        <!-- Time + tick row -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="4dp"
-            android:textColor="@color/time_text"
-            android:textSize="11sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/time_text"
+                android:textSize="11sp" />
+
+            <!-- Tick text: grey ✓ = sent, green ✓✓ = read -->
+            <TextView
+                android:id="@+id/tvTick"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:text="✓"
+                android:textColor="@color/time_text"
+                android:textSize="11sp" />
+        </LinearLayout>
+
     </LinearLayout>
 </LinearLayout>

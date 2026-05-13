@@ -3,70 +3,99 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="72dp"
     android:background="?attr/selectableItemBackground"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="12dp">
+    android:paddingHorizontal="16dp">
 
-    <!-- Avatar circle -->
+    <!-- Avatar -->
     <TextView
         android:id="@+id/tvAvatar"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:background="@drawable/bg_avatar"
         android:gravity="center"
         android:textColor="@color/white"
-        android:textSize="20sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Online dot — small green circle at bottom-right of avatar -->
+    <View
+        android:id="@+id/vOnlineDot"
+        android:layout_width="13dp"
+        android:layout_height="13dp"
+        android:background="@drawable/bg_online_dot"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@id/tvAvatar"
+        app:layout_constraintEnd_toEndOf="@id/tvAvatar" />
+
+    <!-- Peer name -->
     <TextView
         android:id="@+id/tvPeerName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:textColor="@color/black"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginTop="13dp"
+        android:textColor="@color/text_primary"
         android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/tvTime"
         app:layout_constraintStart_toEndOf="@id/tvAvatar"
-        app:layout_constraintTop_toTopOf="@id/tvAvatar" />
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Last message -->
     <TextView
         android:id="@+id/tvLastMessage"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="8dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="@color/time_text"
+        android:textColor="@color/text_secondary"
         android:textSize="13sp"
-        app:layout_constraintBottom_toBottomOf="@id/tvAvatar"
         app:layout_constraintEnd_toStartOf="@id/tvUnread"
         app:layout_constraintStart_toEndOf="@id/tvAvatar"
         app:layout_constraintTop_toBottomOf="@id/tvPeerName" />
 
+    <!-- Time -->
     <TextView
         android:id="@+id/tvTime"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
         android:textColor="@color/time_text"
         android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/tvPeerName" />
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Unread badge -->
     <TextView
         android:id="@+id/tvUnread"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:background="@drawable/bg_unread_badge"
         android:gravity="center"
         android:textColor="@color/white"
         android:textSize="11sp"
+        android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/tvLastMessage"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvLastMessage" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="64dp"
+        android:background="@color/divider"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

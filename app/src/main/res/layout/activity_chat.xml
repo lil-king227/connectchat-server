@@ -6,39 +6,51 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Toolbar -->
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- AppBarLayout extends behind the status bar (camera area) -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
         android:background="@color/primary"
-        app:navigationIcon="@drawable/ic_back"
-        app:titleTextColor="@color/white">
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:elevation="4dp">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary"
+            app:navigationIcon="@drawable/ic_back"
+            app:titleTextColor="@color/white"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
 
-            <TextView
-                android:id="@+id/tvPeerName"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/white"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/connecting"
-                android:textColor="#CCffffff"
-                android:textSize="12sp" />
-        </LinearLayout>
-    </com.google.android.material.appbar.MaterialToolbar>
+                <TextView
+                    android:id="@+id/tvPeerName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
 
-    <!-- Message list -->
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/connecting"
+                    android:textColor="#CCffffff"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- Message list fills the middle -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="match_parent"
@@ -48,19 +60,34 @@
         android:clipToPadding="false"
         android:padding="8dp" />
 
-    <!-- Input bar -->
+    <!-- "Peer is typing…" indicator sits just above the input bar -->
+    <TextView
+        android:id="@+id/tvTypingIndicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@color/chat_bg"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="4dp"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:visibility="gone" />
+
+    <!-- Input bar at the bottom -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
-        android:elevation="4dp"
+        android:background="#F0F0F0"
+        android:elevation="8dp"
         android:orientation="horizontal"
-        android:padding="8dp">
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="6dp"
+        android:gravity="center_vertical">
 
         <ImageButton
             android:id="@+id/btnPickImage"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Pick image"
             android:src="@android:drawable/ic_menu_gallery"
@@ -70,14 +97,16 @@
             android:id="@+id/etMessage"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="8dp"
+            android:layout_marginHorizontal="6dp"
             android:layout_weight="1"
             android:background="@drawable/bg_input_rounded"
             android:hint="@string/type_message"
             android:inputType="textMultiLine|textCapSentences"
             android:maxLines="4"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="10dp" />
+            android:minHeight="40dp"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="9dp"
+            android:textSize="15sp" />
 
         <ImageButton
             android:id="@+id/btnSend"
@@ -86,7 +115,9 @@
             android:background="@drawable/bg_send_button"
             android:contentDescription="Send"
             android:src="@android:drawable/ic_menu_send"
-            android:tint="@color/white" />
+            android:tint="@color/white"
+            android:padding="10dp" />
+
     </LinearLayout>
 
 </LinearLayout>

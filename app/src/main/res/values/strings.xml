@@ -12,8 +12,11 @@
     <string name="type_message">Type a message…</string>
     <string name="send">Send</string>
     <string name="clear_history">Clear Chat History</string>
+    <string name="delete_conversation">Delete Conversation</string>
     <string name="logout">Logout</string>
+    <string name="profile">My Profile</string>
     <string name="connecting">Connecting…</string>
     <string name="online">Online</string>
     <string name="offline">Offline</string>
+    <string name="change_photo">Change Photo</string>
 </resources>

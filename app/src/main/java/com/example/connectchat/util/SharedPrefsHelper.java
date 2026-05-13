@@ -5,8 +5,9 @@ import android.content.SharedPreferences;
 
 public class SharedPrefsHelper {
 
-    private static final String PREF_NAME    = "connect_chat_prefs";
-    private static final String KEY_USERNAME = "logged_in_username";
+    private static final String PREF_NAME      = "connect_chat_prefs";
+    private static final String KEY_USERNAME   = "logged_in_username";
+    private static final String KEY_AVATAR_PATH = "avatar_file_path";
 
     private final SharedPreferences prefs;
 
@@ -27,6 +28,16 @@ public class SharedPrefsHelper {
     }
 
     public void logout() {
-        prefs.edit().remove(KEY_USERNAME).apply();
+        prefs.edit().remove(KEY_USERNAME).remove(KEY_AVATAR_PATH).apply();
+    }
+
+    /** Save the absolute path of the locally-stored profile picture. */
+    public void saveAvatarPath(String path) {
+        prefs.edit().putString(KEY_AVATAR_PATH, path).apply();
+    }
+
+    /** Returns the saved avatar file path, or null if none set. */
+    public String getAvatarPath() {
+        return prefs.getString(KEY_AVATAR_PATH, null);
     }
 }

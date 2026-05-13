@@ -6,12 +6,14 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "messages")
 public class Message {
 
-    public static final String TYPE_TEXT  = "text";
-    public static final String TYPE_IMAGE = "image";
+    public static final String TYPE_TEXT    = "text";
+    public static final String TYPE_IMAGE   = "image";
+    public static final String TYPE_DELETED = "deleted";   // message deleted for everyone
 
-    public static final String STATUS_SENDING = "sending";
-    public static final String STATUS_SENT    = "sent";
+    public static final String STATUS_SENDING  = "sending";
+    public static final String STATUS_SENT     = "sent";
     public static final String STATUS_RECEIVED = "received";
+    public static final String STATUS_READ     = "read";   // sender knows it was read
 
     @PrimaryKey(autoGenerate = true)
     public long messageId;

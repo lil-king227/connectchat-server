@@ -14,8 +14,10 @@ import com.example.connectchat.model.db.entity.Conversation;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapter.ConvViewHolder> {
 
@@ -29,6 +31,9 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     private final SimpleDateFormat timeFormat =
             new SimpleDateFormat("HH:mm", Locale.getDefault());
 
+    /** Usernames currently online — drives the green dot. */
+    private Set<String> onlineUsers = new HashSet<>();
+
     public ConversationAdapter(String currentUsername, OnConversationClickListener listener) {
         this.currentUsername = currentUsername;
         this.listener = listener;
@@ -37,6 +42,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     public void setConversations(List<Conversation> convs) {
         conversations.clear();
         conversations.addAll(convs);
+        notifyDataSetChanged();
+    }
+
+    /** Call whenever the online-user set changes (connect / disconnect / initial list). */
+    public void setOnlineUsers(Set<String> users) {
+        this.onlineUsers = users != null ? users : new HashSet<>();
         notifyDataSetChanged();
     }
 
@@ -52,7 +63,6 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     public void onBindViewHolder(@NonNull ConvViewHolder holder, int position) {
         Conversation conv = conversations.get(position);
 
-        // Determine peer name
         String peer = conv.participantOne.equals(currentUsername)
                 ? conv.participantTwo : conv.participantOne;
 
@@ -71,6 +81,11 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
             holder.tvUnread.setVisibility(View.GONE);
         }
 
+        // Online dot — green if peer is in the onlineUsers set
+        if (holder.vOnlineDot != null) {
+            holder.vOnlineDot.setVisibility(onlineUsers.contains(peer) ? View.VISIBLE : View.INVISIBLE);
+        }
+
         holder.itemView.setOnClickListener(v -> listener.onClick(conv));
     }
 
@@ -81,6 +96,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
     static class ConvViewHolder extends RecyclerView.ViewHolder {
         TextView tvAvatar, tvPeerName, tvLastMessage, tvTime, tvUnread;
+        View vOnlineDot;
 
         ConvViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -89,6 +105,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
             tvLastMessage = itemView.findViewById(R.id.tvLastMessage);
             tvTime        = itemView.findViewById(R.id.tvTime);
             tvUnread      = itemView.findViewById(R.id.tvUnread);
+            vOnlineDot    = itemView.findViewById(R.id.vOnlineDot);
         }
     }
 }

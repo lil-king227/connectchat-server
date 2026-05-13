@@ -6,10 +6,15 @@
     android:layout_height="match_parent"
     android:background="@color/surface">
 
+    <!-- AppBarLayout extends behind status bar / camera -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        android:background="@color/primary"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:elevation="4dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
@@ -17,37 +22,69 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@color/primary"
             app:title="ConnectChat"
+            app:titleTextAppearance="@style/ToolbarTitleStyle"
             app:titleTextColor="@color/white"
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
             app:menu="@menu/menu_home" />
+
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- Conversation list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvConversations"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:background="@color/white"
         android:clipToPadding="false"
-        android:paddingBottom="80dp" />
+        android:paddingBottom="88dp" />
 
-    <TextView
+    <!-- Empty state (centered) -->
+    <LinearLayout
         android:id="@+id/tvEmpty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="No conversations yet.\nTap + to start chatting!"
-        android:textAlignment="center"
-        android:textColor="@color/time_text"
-        android:textSize="16sp"
-        android:visibility="gone" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="💬"
+            android:textSize="64sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No conversations yet"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Tap + to start a new chat"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabNewChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_margin="20dp"
         android:contentDescription="New Chat"
         app:srcCompat="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/primary" />
+        app:backgroundTint="@color/accent"
+        app:tint="@color/white"
+        app:elevation="6dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

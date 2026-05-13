@@ -3,6 +3,7 @@
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
         <item name="colorAccent">@color/accent</item>
+        <item name="android:fontFamily">sans-serif</item>
     </style>
 
     <style name="Theme.ConnectChat" parent="Base.Theme.ConnectChat" />
@@ -10,5 +11,13 @@
     <style name="Theme.ConnectChat.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- Bold toolbar title -->
+    <style name="ToolbarTitleStyle" parent="@style/TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:letterSpacing">0.01</item>
     </style>
 </resources>
